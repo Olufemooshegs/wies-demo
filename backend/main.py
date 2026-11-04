@@ -109,13 +109,9 @@ Always format your final response using clean Markdown tables. Be professional."
             return {
                 "response": final_response,
                 "map_data": map_data if map_data and "latitude" in map_data else None,
-                "trace": trace_data # NEW: Send trace to frontend
+                "trace": trace_data
             }
             
     except Exception as e:
         print(f"Error: {e}")
         return {"response": f"An error occurred: {str(e)}", "map_data": None, "trace": []}
-            
-    except Exception as e:
-        print(f"Error: {e}")
-        return {"response": f"An error occurred: {str(e)}", "map_data": None}

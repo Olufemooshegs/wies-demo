@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+import time
 from typing import List, Dict, Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,8 +23,7 @@ app.add_middleware(
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# Connect directly to our local python script!
-# Create the explicit STDIO transport
+# Connect to the local python script safely
 MCP_TRANSPORT = StdioTransport(
     command=sys.executable,
     args=["mcp_server.py"],
@@ -32,6 +32,17 @@ MCP_TRANSPORT = StdioTransport(
 
 class ChatRequest(BaseModel):
     message: str
+
+# Helper function to handle Groq rate limits
+def safe_chat_completion(**kwargs):
+    for attempt in range(3):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except Exception as e:
+            if "429" in str(e) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            raise
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
@@ -59,17 +70,18 @@ Always format your final response using clean Markdown tables. Be professional."
                 {"role": "user", "content": req.message}
             ]
             
-            response = client.chat.completions.create(
+            response = safe_chat_completion(
                 model="qwen/qwen3.8-27b",
                 messages=messages,
                 tools=groq_tools,
                 tool_choice="auto",
+                max_tokens=900, # FIXED: Under 1000 limit
             )
             
             tool_calls = response.choices[0].message.tool_calls
             map_data = None
             final_response = ""
-            trace_data = [] # NEW: Store the agent's steps
+            trace_data = [] 
             
             if tool_calls:
                 for tc in tool_calls:
@@ -79,7 +91,6 @@ Always format your final response using clean Markdown tables. Be professional."
                     result = await mcp_client.call_tool(func_name, args)
                     result_text = result.content[0].text if (result and hasattr(result, 'content') and len(result.content) > 0) else "{}"
                     
-                    # NEW: Log the trace
                     trace_data.append({
                         "tool": func_name,
                         "args": args,
@@ -98,9 +109,10 @@ Always format your final response using clean Markdown tables. Be professional."
                         "content": result_text,
                     })
                 
-                second_response = client.chat.completions.create(
+                second_response = safe_chat_completion(
                     model="qwen/qwen3.8-27b",
                     messages=messages,
+                    max_tokens=900, # FIXED: Under 1000 limit
                 )
                 final_response = second_response.choices[0].message.content
             else:
@@ -109,9 +121,13 @@ Always format your final response using clean Markdown tables. Be professional."
             return {
                 "response": final_response,
                 "map_data": map_data if map_data and "latitude" in map_data else None,
-                "trace": trace_data
+                "trace": trace_data 
             }
             
     except Exception as e:
         print(f"Error: {e}")
         return {"response": f"An error occurred: {str(e)}", "map_data": None, "trace": []}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

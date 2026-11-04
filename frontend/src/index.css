@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* Custom scrollbar for the chat */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Leaflet Dark Mode Overrides */
+.leaflet-container {
+  background: #0f172a !important;
+}
+.leaflet-bar a {
+  background-color: #1e293b !important;
+  color: white !important;
+  border-bottom: 1px solid #334155 !important;
+}

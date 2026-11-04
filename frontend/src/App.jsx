@@ -15,7 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom Icons
 const activeWaterIcon = new L.DivIcon({
   className: 'custom-icon',
   html: `<div style="background-color: #3b82f6; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>`,
@@ -39,18 +38,15 @@ function MapController({ location }) {
   const map = useMap();
   useEffect(() => {
     if (Array.isArray(location) && location.length > 0) {
-      // If it's an array of lakes (proximity search)
       const bounds = L.latLngBounds(location.map(d => [d.latitude, d.longitude]));
       map.flyToBounds(bounds, { padding: [50, 50], duration: 2 });
     } else if (location && location.latitude) {
-      // If it's a single lake
       map.flyTo([location.latitude, location.longitude], 10, { duration: 2 });
     }
   }, [location, map]);
   return null;
 }
 
-// Trace Component (The "How I got this" panel)
 function AgentTrace({ trace }) {
   const [isOpen, setIsOpen] = useState(false);
   if (!trace || trace.length === 0) return null;
@@ -97,6 +93,7 @@ export default function App() {
     setLoading(true);
 
     try {
+      // ENSURE THIS POINTS TO YOUR RENDER URL
       const res = await fetch('https://golden-state-api.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,20 +139,15 @@ export default function App() {
             <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}" />
           </>
         ) : (
-          <TileLayer 
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}" 
-            attribution="Tiles &copy; Esri" 
-          />
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}" attribution="Tiles &copy; Esri" />
         )}
 
-        {/* Render base stations */}
         {BASE_STATIONS.map((s, i) => (
           <Marker key={`base-${i}`} position={[s.lat, s.lng]} icon={baseIcon} eventHandlers={{ click: () => sendMessage(`What is the water level for ${s.name}?`) }}>
             <Popup>{s.name}</Popup>
           </Marker>
         ))}
 
-        {/* Render Result markers */}
         {Array.isArray(mapData) ? (
           mapData.map((d, i) => d.latitude && (
             <Marker key={`res-${i}`} position={[d.latitude, d.longitude]} icon={activeWaterIcon}>
@@ -173,7 +165,6 @@ export default function App() {
                     <strong>7-day avg:</strong> {mapData.seven_day_avg} ft
                   </div>
                 )}
-                <div className="text-[10px] text-slate-400 mt-1">Updated: {mapData.last_updated}</div>
               </div>
             </Popup>
           </Marker>
@@ -206,7 +197,7 @@ export default function App() {
                   {m.role === 'user' ? (
                     m.content
                   ) : (
-                    <>
+                    <div className="w-full">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -222,7 +213,6 @@ export default function App() {
                         {m.content}
                       </ReactMarkdown>
 
-                      {/* Render Chart if history exists */}
                       {m.history && m.history.length > 0 && (
                         <div className="mt-4 h-40 w-full bg-slate-50 dark:bg-slate-800 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
                           <ResponsiveContainer width="100%" height="100%">
@@ -239,9 +229,8 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* Evidence Card Download */}
                       {m.trace && m.trace.length > 0 && !m.content.includes("An error occurred") && (
-                        <button  
+                        <button 
                           onClick={() => {
                             const evidence = {
                               timestamp: new Date().toISOString(),
@@ -263,10 +252,9 @@ export default function App() {
                           <Download size={14} /> Save as Evidence Card (JSON)
                         </button>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
-                {/* Render the trace if it exists */}
                 {m.trace && <AgentTrace trace={m.trace} />}
               </motion.div>
             ))}
@@ -281,7 +269,6 @@ export default function App() {
           </AnimatePresence>
         </div>
 
-        {/* Quick Prompts */}
         <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
           {["Shasta Lake", "Lake Oroville", "Folsom Lake", "Lakes near Sacramento"].map(name => (
             <button key={name} onClick={() => sendMessage(`What is the water level for ${name}?`)} className={`text-xs whitespace-nowrap px-3 py-1.5 rounded-full border ${theme.border} ${theme.textMuted} ${theme.btn} transition-colors`}>
